@@ -1,0 +1,9 @@
+name: ping
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "event=${{ github.event_name }}  time=$(date -u)"
