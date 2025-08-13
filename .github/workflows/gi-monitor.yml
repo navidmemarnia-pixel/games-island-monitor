@@ -1,0 +1,48 @@
+name: Games Island Monitor
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"  # alle 15 Minuten
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run monitor
+        env:
+          GI_CATEGORY_URL: https://games-island.eu/c/Magic-The-Gathering/MtG-Booster-Displays-englisch
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          NOTIFY_ON_FIRST_RUN: "0"
+        run: python monitor.py
+
+      - name: Commit state if changed
+        run: |
+          git config user.name "gi-monitor-bot"
+          git config user.email "actions@users.noreply.github.com"
+          if [[ `git status --porcelain` ]]; then
+            git add games_island_state.json
+            git commit -m "Update state [skip ci] $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git push
+          else
+            echo "No changes."
+          fi
